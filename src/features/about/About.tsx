@@ -1,8 +1,6 @@
 import { Alert, AlertTitle, Button, ButtonGroup, Container, List, ListItem, ListItemText, Typography } from '@mui/material'
-import React, { useState } from 'react'
+import { useState } from 'react'
 import agent from '../../app/api/agent'
-import { error } from 'console';
-import { useNavigate } from 'react-router-dom';
 
 const About = () => {
 
