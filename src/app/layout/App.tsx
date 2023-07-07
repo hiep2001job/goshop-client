@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 import './style.css';
 
@@ -15,29 +15,34 @@ import 'react-toastify/dist/ReactToastify.css';
 import ServerError from '../errors/ServerError';
 import NotFound from '../errors/NotFound';
 import BasketPage from '../../features/basket/BasketPage';
-import { getCookie } from '../util/util';
-import agent from '../api/agent';
 import Loading from './Loading';
-import CheckoutPage from '../../features/checkout/CheckoutPage';
 import { useAppDispatch } from '../../store/configureStore';
-import { setBasket } from '../../features/basket/basketSlice';
+import { fetchBasketAsync } from '../../features/basket/basketSlice';
+import Login from '../../features/account/Login';
+import Register from '../../features/account/Register';
+import { fetchCurrentUser } from '../../features/account/accountSlice';
+import AuthWrapper from './AuthWrapper';
+import Orders from '../../features/order/Orders';
+import CheckoutWrapper from '../../features/checkout/CheckoutWrapper';
+import Inventory from '../../features/admin/Inventory';
 
 
 function App() {
-  const dispatch=useAppDispatch();
+  const dispatch = useAppDispatch();
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const buyerId = getCookie('buyerId');
-    if (buyerId) {
-      agent.Basket.get()
-        .then(basket => dispatch(setBasket(basket)))
-        .catch(error => console.log(error))
-        .finally(() => setLoading(false));
-    } else {
-      setLoading(false);
+  const initApp = useCallback(async () => {
+    try {
+      await dispatch(fetchCurrentUser());
+      await dispatch(fetchBasketAsync());
+    } catch (error) {
+      console.log(error);
     }
-  }, [dispatch])
+  }, [dispatch]);
+
+  useEffect(() => {
+    initApp().then(() => setLoading(false));
+  }, [dispatch, initApp])
 
 
   const [darkMode, setDarkMode] = useState(true);
@@ -64,15 +69,30 @@ function App() {
       <Header darkMode={darkMode} handleThemeChange={handleThemeChange} />
       <Container>
         <Routes >
+          {/* Public routes */}
           <Route path='/' element={<Home />} />
           <Route path='/catalog' element={<Catalog />} />
           <Route path='/catalog/:id' element={<ProductDetail />} />
           <Route path='/about' element={<About />} />
           <Route path='/contact' element={<Contact />} />
           <Route path='/server-error' element={<ServerError />} />
-          <Route path='/basket' element={<BasketPage />} />
-          <Route path='/checkout' element={<CheckoutPage />} />
+          <Route path='/basket' element={<BasketPage />} />          
+          <Route path='/login' element={<Login />} />
+          <Route path='/register' element={<Register />} />
           <Route path='*' element={<NotFound />} />
+          
+          {/* Authentication required routes */}
+          <Route element={<AuthWrapper />}>
+            <Route path='/checkout' element={<CheckoutWrapper />} />
+            <Route path='/orders' element={<Orders />} />
+          </Route>
+
+          {/* Authentication required routes */}
+          {/* Role Admin required */}
+          <Route element={<AuthWrapper roles={["Admin"]} />}>           
+            <Route path='/inventory' element={<Inventory />} />
+          </Route>
+
         </Routes>
       </Container>
     </ThemeProvider>
